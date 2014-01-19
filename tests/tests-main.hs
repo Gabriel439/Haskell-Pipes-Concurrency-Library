@@ -5,6 +5,7 @@ import Control.Concurrent.Async
 import Control.Monad (forever)
 import Pipes
 import Pipes.Concurrent
+import Pipes.Concurrent.Broadcast
 import qualified Pipes.Prelude as P
 import System.Exit
 import System.IO
@@ -81,6 +82,26 @@ testReceiverCloseDelayedReceive buffer = do
     wait t1
     wait t2
 
+testBroadcast :: IO ()
+testBroadcast = do
+    (feed, bc, _) <- broadcast
+    eat1 <- atomically $ subscribe bc
+    eat2 <- atomically $ subscribe bc
+    t1 <- async $ do
+        runEffect $   fromInput eat1
+                  >-> P.take 10
+                  >-> labelPrint "Arrived 1"
+        performGC
+    t2 <- async $ do
+        runEffect $   fromInput eat2
+                  >-> P.take 10
+                  >-> labelPrint "Arrived 2"
+        performGC
+    runEffect $   each [1..10]
+              >-> toOutput feed
+    wait t1
+    wait t2
+
 runTest :: IO () -> String -> IO ()
 runTest test name = do
     putStrLn $ "Starting test: " ++ name
@@ -120,3 +141,5 @@ main = do
     runTest (testReceiverClose $ Bounded 7) "BoundedNotFilledReceiverClose"
     runTest (testReceiverClose Single) "SingleReceiverClose"
     runTest (testReceiverCloseDelayedReceive $ Latest 42) "LatestReceiverClose"
+    --
+    runTest (testBroadcast) "Broadcast"

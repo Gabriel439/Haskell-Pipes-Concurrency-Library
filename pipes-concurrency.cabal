@@ -36,6 +36,7 @@ Library
         stm          >= 2.4 && < 2.5
     Exposed-Modules:
         Pipes.Concurrent,
+        Pipes.Concurrent.Broadcast,
         Pipes.Concurrent.Tutorial
     GHC-Options: -O2
 
